@@ -22,23 +22,19 @@ int sec_act = 0;
 int rele[8];
 
 void setup() {
-
-  pinMode(rele[0], OUTPUT); //modo salida
-
-  //module1.setDisplayToString("ALL OFF");
+  tm1638.setDisplayToString("ALL OFF");
   tm1638.setupDisplay(true, 1);
 
   for (int i = 0; i < 8; i++)
   {
-    segundos[i] = 60;
+    segundos[i] = 0;
     tm1638.setLED(TM1638_COLOR_GREEN, i);
+    pinMode(rele[i], OUTPUT); //modo salida
   }
-
 }
-// =============================================================
 
 void loop() {
-  
+
   for (int boton = 1; boton < 9; boton++) {
     // Let the TM1638 process the button inputs
     botones = tm1638.getButtons();
@@ -46,7 +42,7 @@ void loop() {
 
       delay(200);
 
-      if (segundos[boton - 1] == 30)
+      if (segundos[boton - 1] == 30 || segundos[boton - 1] == 0)
       {
         segundos[boton - 1] = 60;
       }
@@ -64,10 +60,10 @@ void loop() {
     }
   }
 
-  //CheckLines();
+  ComprobarEstadoLineas();
 
-  AbrirLineas();
-  
+  ComprobarTiempoLineas();
+
 
 }
 
@@ -83,28 +79,60 @@ void EncenderLed(int led, int color)
   }
 }
 
-void AbrirLineas()
+void ComprobarTiempoLineas()
 {
+int j=0;
+  int ajustar = 20; //83;
 
-int ajustar = 20; //83;
+  sec_act++;
 
-sec_act++;
+  tm1638.setDisplayToString(String(sec_act / ajustar));
 
-tm1638.setDisplayToString(String(sec_act / ajustar));
-  
-  for (int i = 0; i < 8; i++)
+  if (sec_act / ajustar == 60 || sec_act / ajustar == 90 || sec_act / ajustar == 120)
   {
-    if(segundos[i] == sec_act / ajustar)
+    j=sec_act / ajustar;
+    for (int i = 0; i < 8; i++)
     {
-     tm1638.setDisplayToString("________");
+      if (segundos[i] == j)
+      {
+        digitalWrite(i, HIGH);
+        
+        digitalWrite(i, LOW);
+      }
     }
   }
 
-  if(sec_act / ajustar > 120)
+  if (sec_act / ajustar > 120)
   {
     tm1638.clearDisplay();
     sec_act = 1;
   }
+}
+
+void ComprobarEstadoLineas()
+{
+  apagar = 0;
+
+  for (int i = 0; i < 8; i++)
+  {
+    if (segundos[i] > 30)
+    {
+      apagar++;
+    }
+  }
+
+  if (apagar == 0)
+  {
+    tm1638.setDisplayToString("ALL OFF ");
+  }
+}
+
+void AbrirValvula(int linea)
+{
+  digitalWrite(linea, HIGH);   // Enciende el pin
+  //delay(1000);                   // Espera medio segundo
+  digitalWrite(linea, LOW);   // Apaga el pin
+  //delay(10);                   // Espera medio segundo
 }
 
 boolean isButtonBeingPressed(int n) {
@@ -129,30 +157,4 @@ boolean isButtonBeingPressed(int n) {
     return true;
   else
     return false;
-}
-
-void CheckLines()
-{
-  apagar = 0;
-
-  for (int i = 0; i < 8; i++)
-  {
-    if (segundos[i] > 30)
-    {
-      apagar++;
-    }
-  }
-
-  if (apagar == 0)
-  {
-    tm1638.setDisplayToString("ALL OFF ");
-  }
-}
-
-void disparar(int linea)
-{
-  digitalWrite(linea, HIGH);   // Enciende el pin
-  delay(500);                   // Espera medio segundo
-  digitalWrite(linea, LOW);   // Apaga el pin
-  delay(500);                   // Espera medio segundo
 }
