@@ -12,11 +12,11 @@
 #define CLK 9
 #define STROBE 7
 
-TM1638 module1(DATA, CLK, STROBE);  // Define modulo y pines
+TM1638 tm1638(DATA, CLK, STROBE);  // Define modulo y pines
 
 String txt = "";       // variable con el texto a imprimir
-int seconds[8];
-byte buttons;
+int segundos[8];
+byte botones;
 byte apagar = 0;
 int sec_act = 0;
 int rele[8];
@@ -26,12 +26,12 @@ void setup() {
   pinMode(rele[0], OUTPUT); //modo salida
 
   //module1.setDisplayToString("ALL OFF");
-  module1.setupDisplay(true, 1);
+  tm1638.setupDisplay(true, 1);
 
   for (int i = 0; i < 8; i++)
   {
-    seconds[i] = 60;
-    module1.setLED(TM1638_COLOR_GREEN, i);
+    segundos[i] = 60;
+    tm1638.setLED(TM1638_COLOR_GREEN, i);
   }
 
 }
@@ -39,28 +39,28 @@ void setup() {
 
 void loop() {
   
-  for (int buttonToTest = 1; buttonToTest < 9; buttonToTest++) {
+  for (int boton = 1; boton < 9; boton++) {
     // Let the TM1638 process the button inputs
-    buttons = module1.getButtons();
-    if (isButtonBeingPressed(buttonToTest)) {
+    botones = tm1638.getButtons();
+    if (isButtonBeingPressed(boton)) {
 
       delay(200);
 
-      if (seconds[buttonToTest - 1] == 30)
+      if (segundos[boton - 1] == 30)
       {
-        seconds[buttonToTest - 1] = 60;
+        segundos[boton - 1] = 60;
       }
 
-      if (seconds[buttonToTest - 1] > 120)
+      if (segundos[boton - 1] > 120)
       {
-        seconds[buttonToTest - 1] = 0;
+        segundos[boton - 1] = 0;
       }
 
-      EncenderLed(buttonToTest, seconds[buttonToTest - 1]);
+      EncenderLed(boton, segundos[boton - 1]);
 
-      txt = "L" + String(buttonToTest) + " " + String(seconds[buttonToTest - 1]) + "         ";
-      module1.setDisplayToString(txt);
-      seconds[buttonToTest - 1] += 30;
+      txt = "L" + String(boton) + " " + String(segundos[boton - 1]) + "         ";
+      tm1638.setDisplayToString(txt);
+      segundos[boton - 1] += 30;
     }
   }
 
@@ -75,11 +75,11 @@ void EncenderLed(int led, int color)
 {
   if (color > 0)
   {
-    module1.setLED(TM1638_COLOR_RED, led - 1);
+    tm1638.setLED(TM1638_COLOR_RED, led - 1);
   }
   else
   {
-    module1.setLED(TM1638_COLOR_GREEN, led - 1);
+    tm1638.setLED(TM1638_COLOR_GREEN, led - 1);
   }
 }
 
@@ -90,19 +90,19 @@ int ajustar = 20; //83;
 
 sec_act++;
 
-module1.setDisplayToString(String(sec_act / ajustar));
+tm1638.setDisplayToString(String(sec_act / ajustar));
   
   for (int i = 0; i < 8; i++)
   {
-    if(seconds[i] == sec_act / ajustar)
+    if(segundos[i] == sec_act / ajustar)
     {
-     module1.setDisplayToString("________");
+     tm1638.setDisplayToString("________");
     }
   }
 
   if(sec_act / ajustar > 120)
   {
-    module1.clearDisplay();
+    tm1638.clearDisplay();
     sec_act = 1;
   }
 }
@@ -116,13 +116,13 @@ boolean isButtonBeingPressed(int n) {
   if (n < 1 or n > 8) return false;
 
   // Read in the value of getButtons from the TM1638 module.
-  buttons = module1.getButtons();
+  botones = tm1638.getButtons();
 
   // Which bit must we test for this button?
   int bitToLookAt = n - 1;
 
   // Read the value of the bit - either a 1 for button pressed, or 0 for not pressed.
-  byte theValueOfTheBit = bitRead(buttons, bitToLookAt);
+  byte theValueOfTheBit = bitRead(botones, bitToLookAt);
 
   // If the button is pressed, return true, otherwise return false.
   if (theValueOfTheBit == 1)
@@ -137,7 +137,7 @@ void CheckLines()
 
   for (int i = 0; i < 8; i++)
   {
-    if (seconds[i] > 30)
+    if (segundos[i] > 30)
     {
       apagar++;
     }
@@ -145,7 +145,7 @@ void CheckLines()
 
   if (apagar == 0)
   {
-    module1.setDisplayToString("ALL OFF ");
+    tm1638.setDisplayToString("ALL OFF ");
   }
 }
 
