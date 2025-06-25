@@ -75,6 +75,15 @@ void manejarPulsacion(byte boton) {
   mostrarTexto(texto);
 }
 
+void parpadearLED(byte boton, byte color, int veces = 3, int intervalo = 200) {
+  for (int i = 0; i < veces; i++) {
+    tm1638.setLED(TM1638_COLOR_NONE, boton);  // Apagar LED
+    delay(intervalo);
+    tm1638.setLED(color, boton);              // Encender LED con su color original
+    delay(intervalo);
+  }
+}
+
 void actualizarCuentasAtras() {
   for (int i = 0; i < 8; i++) {
     if (estados[i] > 0) {
@@ -86,7 +95,11 @@ void actualizarCuentasAtras() {
         cuentasAtras[i] = tiempos[estados[i]];
 
         Serial.print("Salida "); Serial.print(i + 1);
-        Serial.print(" activada cada "); Serial.print(tiempos[estados[i]]); Serial.println("s");
+        Serial.print(" activada cada "); Serial.print(tiempos[estados[i]]); Serial.println("s"); 
+
+        // Parpadear LED del botón
+        byte color = (estados[i] == 0) ? TM1638_COLOR_GREEN : TM1638_COLOR_RED;
+        parpadearLED(i, color);  // ← Llama aquí
       }
     }
   }
