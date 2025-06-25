@@ -20,8 +20,19 @@ unsigned long tiempoActual = 0;
 unsigned long ultimaActualizacion = 0;
 byte botonesPrevios = 0;
 int ultimoBotonActivo = -1;
-String textoDisplay = "        ";  // Guarda el texto principal del display (6 primeros dígitos)
+String textoDisplay = "        ";  // Guarda el texto principal del display
 
+// Estructura de parpadeo
+struct ParpadeoLED {
+  bool activo = false;
+  byte colorOriginal = TM1638_COLOR_RED;
+  byte fase = 0;
+  unsigned long ultimoCambio = 0;
+};
+
+ParpadeoLED parpadeos[8];
+const int PARPADEO_VECES = 3;
+const int PARPADEO_INTERVALO = 200;
 
 void setup() {
   Serial.begin(115200);
@@ -51,6 +62,8 @@ void loop() {
   }
 
   botonesPrevios = botonesActuales;
+
+  actualizarParpadeos();  // ← Aquí se actualizan los parpadeos sin bloquear
 }
 
 void manejarPulsacion(byte boton) {
@@ -75,12 +88,34 @@ void manejarPulsacion(byte boton) {
   mostrarTexto(texto);
 }
 
-void parpadearLED(byte boton, byte color, int veces = 3, int intervalo = 200) {
-  for (int i = 0; i < veces; i++) {
-    tm1638.setLED(TM1638_COLOR_NONE, boton);  // Apagar LED
-    delay(intervalo);
-    tm1638.setLED(color, boton);              // Encender LED con su color original
-    delay(intervalo);
+void iniciarParpadeo(byte boton, byte color) {
+  parpadeos[boton].activo = true;
+  parpadeos[boton].colorOriginal = color;
+  parpadeos[boton].fase = 0;
+  parpadeos[boton].ultimoCambio = millis();
+}
+
+void actualizarParpadeos() {
+  unsigned long ahora = millis();
+
+  for (int i = 0; i < 8; i++) {
+    if (parpadeos[i].activo) {
+      if (ahora - parpadeos[i].ultimoCambio >= PARPADEO_INTERVALO) {
+        if (parpadeos[i].fase % 2 == 0) {
+          tm1638.setLED(TM1638_COLOR_NONE, i);
+        } else {
+          tm1638.setLED(parpadeos[i].colorOriginal, i);
+        }
+
+        parpadeos[i].fase++;
+        parpadeos[i].ultimoCambio = ahora;
+
+        if (parpadeos[i].fase >= PARPADEO_VECES * 2) {
+          parpadeos[i].activo = false;
+          tm1638.setLED(parpadeos[i].colorOriginal, i);
+        }
+      }
+    }
   }
 }
 
@@ -89,17 +124,17 @@ void actualizarCuentasAtras() {
     if (estados[i] > 0) {
       cuentasAtras[i]--;
       if (cuentasAtras[i] <= 0) {
-        //digitalWrite(pinesSalida[i], HIGH);
-        //delay(50);
-        //digitalWrite(pinesSalida[i], LOW);
+        digitalWrite(pinesSalida[i], HIGH);
+        delay(50);
+        digitalWrite(pinesSalida[i], LOW);
+
         cuentasAtras[i] = tiempos[estados[i]];
 
         Serial.print("Salida "); Serial.print(i + 1);
         Serial.print(" activada cada "); Serial.print(tiempos[estados[i]]); Serial.println("s"); 
 
-        // Parpadear LED del botón
         byte color = (estados[i] == 0) ? TM1638_COLOR_GREEN : TM1638_COLOR_RED;
-        parpadearLED(i, color);  // ← Llama aquí
+        iniciarParpadeo(i, color);
       }
     }
   }
@@ -110,16 +145,15 @@ void actualizarCuentasAtras() {
 }
 
 void mostrarTexto(String texto) {
-  while (texto.length() < 6) texto += " ";  // Rellenar a 6 caracteres
-  textoDisplay = texto;                    // Guardar texto principal
-  texto += "  ";                           // Rellenar los últimos 2 con espacios
+  while (texto.length() < 6) texto += " ";
+  textoDisplay = texto;
+  texto += "  ";
   tm1638.setDisplayToString(texto);
 }
 
 void mostrarCuentaAtras() {
-  // Copiamos los primeros 6 caracteres del texto principal
   String texto = textoDisplay;
-  while (texto.length() < 6) texto += " "; // Asegurarse de tener 6 caracteres
+  while (texto.length() < 6) texto += " ";
 
   if (ultimoBotonActivo >= 0 && estados[ultimoBotonActivo] > 0) {
     int segundos = cuentasAtras[ultimoBotonActivo];
@@ -131,10 +165,8 @@ void mostrarCuentaAtras() {
     texto += (decenas == 0 ? ' ' : char('0' + decenas));
     texto += char('0' + unidades);
   } else {
-    texto += "  "; // Borrar cuenta atrás si no hay botón activo
+    texto += "  ";
   }
 
   tm1638.setDisplayToString(texto);
 }
-
-
